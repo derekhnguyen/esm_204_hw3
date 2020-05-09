@@ -1,0 +1,58 @@
+---
+title: "esm_204_hw3"
+author: "Oswaldo Felix, Derek Nguyen"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(tidyr)
+library(ggplot2)
+library(janitor)
+```
+```{r}
+gas_data <- read_csv("gas_data.csv") %>% 
+  clean_names()
+```
+
+```{r}
+# regression models for high and low income consumers (demand curves)
+
+# Low 
+lm_low <- lm(price_dollars ~ q_low_gallons, data = gas_data)
+lm_low
+
+# high
+lm_high <- lm(price_dollars ~ q_high_gallons, data = gas_data)
+lm_high
+```
+
+
+```{r}
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
