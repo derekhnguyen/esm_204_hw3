@@ -57,8 +57,12 @@ predict_demand <- function(q, model){
   return(predicted_demand)
 }
 
-quantity = seq(1:50)
-predict_demand(quantity, lm_high)
+quantity_h = seq(from = 1, to = 500000, by = 10000)
+predict_demand(quantity_h, lm_high)
+
+
+quantity_l = seq(from = 1, to = 150000, by = 3000)
+predict_demand(quantity_l, lm_low)
 
 
 ```
