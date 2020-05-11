@@ -13,10 +13,28 @@ library(tidyverse)
 library(tidyr)
 library(ggplot2)
 library(janitor)
+library(gridExtra)
 ```
+
 ```{r}
 gas_data <- read_csv("gas_data.csv") %>% 
   clean_names()
+```
+
+
+
+```{r}
+plot_low <- ggplot(data = gas_data, aes(x = price_dollars, y = q_low_gallons)) +
+  geom_point()+
+  theme_minimal()
+plot_low
+
+plot_high <- ggplot(data = gas_data, aes(x = price_dollars, y = q_high_gallons)) +
+  geom_point() +
+  theme_minimal()
+plot_high
+
+grid.arrange(plot_low, plot_high, ncol = 2, top = "Demand for High and Low Consumers")
 ```
 
 ```{r}
@@ -31,11 +49,14 @@ lm_high <- lm(price_dollars ~ q_high_gallons, data = gas_data)
 lm_high
 ```
 
-
 ```{r}
-
+predict_demand <- function(q, model){
+  b0 <- model$coefficients["(intercept"]
+  b1 <- model$coefficients["q_low_gallons"]
+  predict_demand <- b0 +b1*q
+  return(predicted_demand)
+}
 ```
-
 
 
 
