@@ -53,9 +53,12 @@ lm_high
 predict_demand <- function(q, model){
   b0 <- model$coefficients["(intercept"]
   b1 <- model$coefficients["q_low_gallons"]
-  predict_demand <- b0 +b1*q
+  predicted_demand <- b0 +b1*q
   return(predicted_demand)
 }
+
+quantity = seq(1:50)
+predict_demand(quantity, lm_high)
 ```
 
 
