@@ -40,14 +40,41 @@ grid.arrange(plot_low, plot_high, ncol = 2, top = "Demand for High and Low Consu
 ```{r}
 # regression models for high and low income consumers (demand curves)
 
-# Low 
-lm_low <- lm(price_dollars ~ q_low_gallons, data = gas_data)
-lm_low
+# Low (demand curve (quantity-based))
+lm_low_q <- lm(price_dollars ~ q_low_gallons, data = gas_data)
+lm_low_q
 
-# high
-lm_high <- lm(price_dollars ~ q_high_gallons, data = gas_data)
-lm_high
+# High (demand curve (quantity-based))
+lm_high_q <- lm(price_dollars ~ q_high_gallons, data = gas_data)
+lm_high_q
 ```
+
+```{r}
+# Aggregate demand curve calculation
+
+# Low (demand curve (price-based))
+lm_low_p <- lm(q_low_gallons ~ price_dollars, data = gas_data)
+lm_low_p
+
+# High (demand curve (price-based))
+lm_high_p <- lm(q_high_gallons ~ price_dollars, data = gas_data)
+lm_high_p
+
+
+aggregate_demand <- function(q){
+  c0 <- lm_low_p$coefficients[1]
+  c1 <- lm_low_p$coefficients[2]
+  d0 <- lm_high_p$coefficients[1]
+  d1 <- lm_high_p$coefficients[2]
+  aggregated_demand <- c0+d0 + (c1+d1)*q
+  return(aggregated_demand)
+}
+
+aggregate_demand(gas_data$price_dollars)
+
+
+```
+
 
 ```{r}
 predict_demand <- function(q, model){
@@ -57,13 +84,27 @@ predict_demand <- function(q, model){
   return(predicted_demand)
 }
 
-quantity_h = seq(from = 1, to = 500000, by = 10000)
-predict_demand(quantity_h, lm_high)
+quantity_h = seq(from = 1, to = 500099, by = 26321)
+graph_h <- predict_demand(quantity_h, lm_high_q)
 
 
-quantity_l = seq(from = 1, to = 150000, by = 3000)
-predict_demand(quantity_l, lm_low)
+quantity_l = seq(from = 1, to = 150005, by = 7895)
+graph_l <- predict_demand(quantity_l, lm_low_q)
 
+predict_df <- data.frame(gas_data$price_dollars, gas_data$q_high_gallons, gas_data$q_low_gallons, quantity_h, graph_h, quantity_l, graph_l) %>% 
+  mutate(low_q = gas_data.q_low_gallons,
+         high_q = gas_data.q_high_gallons,
+         price_q = gas_data.price_dollars)
+
+ggplot(data = predict_df, aes(x = quantity_h, y = graph_h))+
+  geom_line(aes(x = graph_l, y = quantity_l), color = "red") +
+  geom_line(aes(x = graph_h, y = quantity_h), color = "blue") +
+  geom_point(aes(x = price_q, y = low_q), color = "firebrick") +
+  geom_point(aes(x = price_q, y = high_q), color = "blueviolet") +
+  theme_minimal() +
+  labs(y = "Price", x = "Quantity")
+  coord_flip()
+  
 
 ```
 
