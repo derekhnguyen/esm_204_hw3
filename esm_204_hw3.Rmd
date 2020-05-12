@@ -8,6 +8,8 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+---- Setup -----
+
 ```{r}
 library(tidyverse)
 library(tidyr)
@@ -21,7 +23,7 @@ gas_data <- read_csv("gas_data.csv") %>%
   clean_names()
 ```
 
-
+---- Exploration ----
 
 ```{r}
 plot_low <- ggplot(data = gas_data, aes(x = price_dollars, y = q_low_gallons)) +
@@ -49,6 +51,8 @@ lm_high_q <- lm(price_dollars ~ q_high_gallons, data = gas_data)
 lm_high_q
 ```
 
+---- Calculations ----
+
 ```{r}
 # Aggregate demand curve calculation
 
@@ -70,11 +74,10 @@ aggregate_demand <- function(q){
   return(aggregated_demand)
 }
 
-aggregate_demand(gas_data$price_dollars)
+agg_demand <- aggregate_demand(gas_data$price_dollars)
 
 
 ```
-
 
 ```{r}
 predict_demand <- function(q, model){
@@ -91,7 +94,7 @@ graph_h <- predict_demand(quantity_h, lm_high_q)
 quantity_l = seq(from = 1, to = 150005, by = 7895)
 graph_l <- predict_demand(quantity_l, lm_low_q)
 
-predict_df <- data.frame(gas_data$price_dollars, gas_data$q_high_gallons, gas_data$q_low_gallons, quantity_h, graph_h, quantity_l, graph_l) %>% 
+predict_df <- data.frame(gas_data$price_dollars, gas_data$q_high_gallons, gas_data$q_low_gallons, quantity_h, graph_h, quantity_l, graph_l, agg_demand) %>% 
   mutate(low_q = gas_data.q_low_gallons,
          high_q = gas_data.q_high_gallons,
          price_q = gas_data.price_dollars)
@@ -100,9 +103,10 @@ ggplot(data = predict_df, aes(x = quantity_h, y = graph_h))+
   geom_line(aes(x = graph_l, y = quantity_l), color = "red") +
   geom_line(aes(x = graph_h, y = quantity_h), color = "blue") +
   geom_point(aes(x = price_q, y = low_q), color = "firebrick") +
-  geom_point(aes(x = price_q, y = high_q), color = "blueviolet") +
+  geom_point(aes(x = price_q, y = high_q), color = "blue4") +
+  geom_line(aes(x = price_q, y = agg_demand), color = "blueviolet") +
   theme_minimal() +
-  labs(y = "Price", x = "Quantity") +
+  labs(x = "Price [$/gal]", y = "Quantity ") +
   coord_flip()
   
 
