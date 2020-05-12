@@ -102,7 +102,7 @@ ggplot(data = predict_df, aes(x = quantity_h, y = graph_h))+
   geom_point(aes(x = price_q, y = low_q), color = "firebrick") +
   geom_point(aes(x = price_q, y = high_q), color = "blueviolet") +
   theme_minimal() +
-  labs(y = "Price", x = "Quantity")
+  labs(y = "Price", x = "Quantity") +
   coord_flip()
   
 
