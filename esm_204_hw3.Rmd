@@ -39,6 +39,8 @@ plot_high
 grid.arrange(plot_low, plot_high, ncol = 2, top = "Demand for High and Low Consumers")
 ```
 
+---- Calculations ----
+
 ```{r}
 # regression models for high and low income consumers (demand curves)
 
@@ -51,34 +53,6 @@ lm_high_q <- lm(price_dollars ~ q_high_gallons, data = gas_data)
 lm_high_q
 ```
 
----- Calculations ----
-
-```{r}
-# Aggregate demand curve calculation
-
-# Low (demand curve (price-based))
-lm_low_p <- lm(q_low_gallons ~ price_dollars, data = gas_data)
-lm_low_p
-
-# High (demand curve (price-based))
-lm_high_p <- lm(q_high_gallons ~ price_dollars, data = gas_data)
-lm_high_p
-
-
-aggregate_demand <- function(q){
-  c0 <- lm_low_p$coefficients[1]
-  c1 <- lm_low_p$coefficients[2]
-  d0 <- lm_high_p$coefficients[1]
-  d1 <- lm_high_p$coefficients[2]
-  aggregated_demand <- c0+d0 + (c1+d1)*q
-  return(aggregated_demand)
-}
-
-agg_demand <- aggregate_demand(gas_data$price_dollars)
-
-
-```
-
 ```{r}
 predict_demand <- function(q, model){
   b0 <- model$coefficients[1]
@@ -87,14 +61,96 @@ predict_demand <- function(q, model){
   return(predicted_demand)
 }
 
-quantity_h = seq(from = 1, to = 500099, by = 26321)
+quantity_h = seq(from = 1, to = 600001, by = 31579)
 graph_h <- predict_demand(quantity_h, lm_high_q)
 
 
-quantity_l = seq(from = 1, to = 150005, by = 7895)
+quantity_l = seq(from = 1, to = 600001, by = 31579)
 graph_l <- predict_demand(quantity_l, lm_low_q)
+```
 
-predict_df <- data.frame(gas_data$price_dollars, gas_data$q_high_gallons, gas_data$q_low_gallons, quantity_h, graph_h, quantity_l, graph_l, agg_demand) %>% 
+```{r}
+# Aggregate demand curve calculation
+
+# Low (demand curve (price-based))
+lm_low_p <- lm(q_low_gallons ~ price_dollars, data = gas_data)
+lm_low_p
+
+
+# High (demand curve (price-based))
+lm_high_p <- lm(q_high_gallons ~ price_dollars, data = gas_data)
+lm_high_p
+
+# Agg demand (price-based)
+aggregate_demand <- function(p){
+  c0 <- lm_low_p$coefficients[1]
+  c1 <- lm_low_p$coefficients[2]
+  d0 <- lm_high_p$coefficients[1]
+  d1 <- lm_high_p$coefficients[2]
+  aggregated_demand <- c0+d0 + (c1+d1)*p
+  return(aggregated_demand)
+}
+
+agg_price <- seq(from = 1+(10.8/19), to = 11.8, by = 10.8/19)
+agg_demand <- aggregate_demand(agg_price)
+```
+
+```{r}
+# Consumer surplus
+
+# Calculate red triangle
+low_upper <- lm_low_q$coefficients[1]
+low_demand <- function(p){
+  c0 <- lm_low_p$coefficients[1]
+  c1 <- lm_low_p$coefficients[2]
+  demand <- c0 + c1*p
+  return(demand)
+}
+low_cs <- integrate(low_demand, lower = 3, upper = low_upper)
+
+# Calculate blue triangle
+high_upper <- lm_high_q$coefficients[1]
+high_demand <- function(p){
+  c0 <- lm_high_p$coefficients[1]
+  c1 <- lm_high_q$coefficients[2]
+  demand <- c0 + c1*p
+  return(demand)
+}
+high_cs <- integrate(high_demand, lower = 3, upper = high_upper)
+
+total_cs <- low_cs$value + high_cs$value
+```
+
+```{r}
+# Quantity at price of $3
+q_bar <- aggregate_demand(3)
+# 576875.2
+
+slope = 3/q_bar
+
+# supply (quantity-based)
+predict_supply <- function(q){
+    predicted_supply <- slope*q
+  return(predicted_supply)
+}
+
+supply_q <- seq(from = 1, to = 700017, by = 36843)
+supply <- predict_supply(supply_q)
+```
+
+```{r}
+# Producer surplus
+
+# Calculate orange triangle
+supply_upper <- q_bar
+total_ps <- integrate(predict_supply, lower = 0, upper = q_bar)
+
+# Environmental cost
+cost_env <- 1.5*q_bar
+```
+
+```{r}
+predict_df <- data.frame(gas_data$price_dollars, gas_data$q_high_gallons, gas_data$q_low_gallons, quantity_h, graph_h, quantity_l, graph_l, agg_demand, supply, supply_q, agg_price) %>% 
   mutate(low_q = gas_data.q_low_gallons,
          high_q = gas_data.q_high_gallons,
          price_q = gas_data.price_dollars)
@@ -104,18 +160,41 @@ ggplot(data = predict_df, aes(x = quantity_h, y = graph_h))+
   geom_line(aes(x = graph_h, y = quantity_h), color = "blue") +
   geom_point(aes(x = price_q, y = low_q), color = "firebrick") +
   geom_point(aes(x = price_q, y = high_q), color = "blue4") +
-  geom_line(aes(x = price_q, y = agg_demand), color = "blueviolet") +
+  geom_line(aes(x = agg_price, y = agg_demand), color = "blueviolet") +
+  geom_line(aes(x = supply, y = supply_q), color = "orange") +
+  geom_vline(aes(xintercept = 3), linetype = "dashed", alpha = 0.5) +
+  geom_hline(aes(yintercept = q_bar), linetype = "dashed", alpha = 0.5) +
+  scale_x_continuous(limits = c(0,17), expand = c(0,0)) +
   theme_minimal() +
-  labs(x = "Price [$/gal]", y = "Quantity ") +
+  labs(x = "Price [$/gal]", y = "Quantity", title = "Econ Curves") +
   coord_flip()
-  
 
 ```
 
+---- Question 3 ----
 
+```{r}
+q_new <- aggregate_demand(4)
 
+supply_q_new <- seq(from = 1, to = 800014, by = 42106)
+supply_new <- predict_supply(supply_q_new)
 
+ggplot(data = predict_df, aes(x = quantity_h, y = graph_h))+
+  geom_line(aes(x = graph_l, y = quantity_l), color = "red") +
+  geom_line(aes(x = graph_h, y = quantity_h), color = "blue") +
+  geom_point(aes(x = price_q, y = low_q), color = "firebrick") +
+  geom_point(aes(x = price_q, y = high_q), color = "blue4") +
+  geom_line(aes(x = agg_price, y = agg_demand), color = "blueviolet") +
+  geom_line(aes(x = supply_new, y = supply_q), color = "orange") +
+  geom_vline(aes(xintercept = 4), linetype = "dashed", alpha = 0.5) +
+  geom_hline(aes(yintercept = q_new), linetype = "dashed", alpha = 0.5) +
+  scale_x_continuous(limits = c(0,15), expand = c(0,0)) +
+  #scale_y_continuous(limits = c(500000, 600000)) +
+  theme_minimal() +
+  labs(x = "Price [$/gal]", y = "Quantity", title = "Econ Curves") +
+  coord_flip()
 
+```
 
 
 
