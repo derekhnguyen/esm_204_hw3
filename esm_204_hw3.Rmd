@@ -8,7 +8,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
----- Setup -----
+# Setup
 
 ```{r}
 library(tidyverse)
@@ -23,7 +23,7 @@ gas_data <- read_csv("gas_data.csv") %>%
   clean_names()
 ```
 
----- Exploration ----
+# Exploration
 
 ```{r}
 plot_low <- ggplot(data = gas_data, aes(x = price_dollars, y = q_low_gallons)) +
@@ -39,7 +39,7 @@ plot_high
 grid.arrange(plot_low, plot_high, ncol = 2, top = "Demand for High and Low Consumers")
 ```
 
----- Questions 1 & 2 ----
+# Questions 1 & 2
 
 ```{r}
 # Regression models for high and low income consumers (demand curves)
@@ -71,7 +71,7 @@ predict_demand <- function(q, model){
   return(predicted_demand)
 }
 
-# demand (price-based) 1.
+# low demand (price-based) 1.
 low_demand <- function(p){
   c0 <- lm_low_p$coefficients[1]
   c1 <- lm_low_p$coefficients[2]
@@ -79,10 +79,10 @@ low_demand <- function(p){
   return(demand)
 }
 
-# demand (price-based) 1.
+# high demand (price-based) 1.
 high_demand <- function(p){
   c0 <- lm_high_p$coefficients[1]
-  c1 <- lm_high_q$coefficients[2]
+  c1 <- lm_high_p$coefficients[2]
   demand <- c0 + c1*p
   return(demand)
 }
@@ -128,8 +128,8 @@ total_cs <- welfare_l + welfare_h
 ```{r}
 # Producer welfare
 # Calculate orange triangle 1.
-supply_upper <- q_bar
-total_ps <- integrate(predict_supply, lower = 0, upper = q_bar)
+ps <- integrate(predict_supply, lower = 0, upper = q_bar)
+welfare_p <- ps$value
 
 # Environmental cost 1.
 cost_env <- 1.5*q_bar
@@ -137,10 +137,10 @@ cost_env <- 1.5*q_bar
 
 ```{r}
 # Visualization set up
-quantity_h = seq(from = 1, to = 600001, by = 31579)
+quantity_h <-  seq(from = 1, to = 600001, by = 31579)
 graph_h <- predict_demand(quantity_h, lm_high_q)
 
-quantity_l = seq(from = 1, to = 600001, by = 31579)
+quantity_l <-  seq(from = 1, to = 600001, by = 31579)
 graph_l <- predict_demand(quantity_l, lm_low_q)
 
 agg_price <- seq(from = 1+(10.8/19), to = 11.8, by = 10.8/19)
@@ -172,7 +172,7 @@ ggplot(data = predict_df, aes(x = quantity_h, y = graph_h))+
 
 ```
 
----- Question 3 ----
+# Question 3
 
 ```{r}
 q_new <- aggregate_demand(4) # a.
@@ -189,7 +189,17 @@ low_cs_new <- integrate(low_demand, lower = p_new, upper = low_upper)
 welfare_l_new <- low_cs_new$value # d.
 
 # Welfare of gas producers
+ps_new <- integrate(predict_supply, lower = 0, upper = q_new)
+welfare_p_new <- ps_new$value # e.
 
+# Local environmental damage
+cost_env_new_l <- 1.5*q_new # f.
+
+# Global environmental damage
+cost_env_new_g <- 0.5*q_new # g.
+
+# Total revenue from tax # h.
+tax_rev <- 1*q_new
 
 # Set up for graph
 supply_q_new <- seq(from = 1, to = 800014, by = 42106)
@@ -212,3 +222,40 @@ ggplot(data = predict_df, aes(x = quantity_h, y = graph_h))+
   coord_flip()
 
 ```
+
+
+# Question 4 
+```{r}
+# pre-tax proportion
+q_low <- low_demand(3)
+q_high <- high_demand(3)
+prop_low <- q_low/q_bar
+prop_high <- q_high/q_bar
+
+# Tax of $1
+welfare_l_new2 <- welfare_l_new + prop_low*tax_rev - cost_env_new_l
+welfare_h_new2 <- welfare_h_new + prop_high*tax_rev
+
+# set up for $5
+p_new2 <- 8
+q_new2 <- aggregate_demand(p_new2)
+
+# Welfare of high income
+high_cs_new2 <- integrate(high_demand, lower = p_new2, upper = high_upper)
+welfare_h_new2 <- high_cs_new2$value
+
+# Welfare of low income
+low_cs_new2 <- integrate(low_demand, lower = p_new2, upper = low_upper)
+welfare_l_new2 <- low_cs_new2$value
+
+# New tax revnue
+tax_rev_new2 <- 5*q_new2
+
+# New environmental cost
+cost_env_new2 <- 1.5*q_new2
+
+# Tax of $5
+welfare_l_new2_5 <- welfare_l_new2 + prop_low*tax_rev_new2 - cost_env_new2
+welfare_h_new2_5 <- welfare_h_new2 + prop_high*tax_rev_new2
+```
+
