@@ -39,10 +39,10 @@ plot_high
 grid.arrange(plot_low, plot_high, ncol = 2, top = "Demand for High and Low Consumers")
 ```
 
----- Calculations ----
+---- Questions 1 & 2 ----
 
 ```{r}
-# regression models for high and low income consumers (demand curves)
+# Regression models for high and low income consumers (demand curves)
 
 # Low (demand curve (quantity-based))
 lm_low_q <- lm(price_dollars ~ q_low_gallons, data = gas_data)
@@ -51,9 +51,19 @@ lm_low_q
 # High (demand curve (quantity-based))
 lm_high_q <- lm(price_dollars ~ q_high_gallons, data = gas_data)
 lm_high_q
+
+# Low (demand curve (price-based))
+lm_low_p <- lm(q_low_gallons ~ price_dollars, data = gas_data)
+lm_low_p
+
+# High (demand curve (price-based))
+lm_high_p <- lm(q_high_gallons ~ price_dollars, data = gas_data)
+lm_high_p
 ```
 
 ```{r}
+# Functions 
+# demand (quantity-based) 1.
 predict_demand <- function(q, model){
   b0 <- model$coefficients[1]
   b1 <- model$coefficients[2]
@@ -61,27 +71,23 @@ predict_demand <- function(q, model){
   return(predicted_demand)
 }
 
-quantity_h = seq(from = 1, to = 600001, by = 31579)
-graph_h <- predict_demand(quantity_h, lm_high_q)
+# demand (price-based) 1.
+low_demand <- function(p){
+  c0 <- lm_low_p$coefficients[1]
+  c1 <- lm_low_p$coefficients[2]
+  demand <- c0 + c1*p
+  return(demand)
+}
 
+# demand (price-based) 1.
+high_demand <- function(p){
+  c0 <- lm_high_p$coefficients[1]
+  c1 <- lm_high_q$coefficients[2]
+  demand <- c0 + c1*p
+  return(demand)
+}
 
-quantity_l = seq(from = 1, to = 600001, by = 31579)
-graph_l <- predict_demand(quantity_l, lm_low_q)
-```
-
-```{r}
-# Aggregate demand curve calculation
-
-# Low (demand curve (price-based))
-lm_low_p <- lm(q_low_gallons ~ price_dollars, data = gas_data)
-lm_low_p
-
-
-# High (demand curve (price-based))
-lm_high_p <- lm(q_high_gallons ~ price_dollars, data = gas_data)
-lm_high_p
-
-# Agg demand (price-based)
+# agg demand (price-based) 1.
 aggregate_demand <- function(p){
   c0 <- lm_low_p$coefficients[1]
   c1 <- lm_low_p$coefficients[2]
@@ -91,70 +97,65 @@ aggregate_demand <- function(p){
   return(aggregated_demand)
 }
 
-agg_price <- seq(from = 1+(10.8/19), to = 11.8, by = 10.8/19)
-agg_demand <- aggregate_demand(agg_price)
-```
-
-```{r}
-# Consumer surplus
-
-# Calculate red triangle
-low_upper <- lm_low_q$coefficients[1]
-low_demand <- function(p){
-  c0 <- lm_low_p$coefficients[1]
-  c1 <- lm_low_p$coefficients[2]
-  demand <- c0 + c1*p
-  return(demand)
-}
-low_cs <- integrate(low_demand, lower = 3, upper = low_upper)
-
-# Calculate blue triangle
-high_upper <- lm_high_q$coefficients[1]
-high_demand <- function(p){
-  c0 <- lm_high_p$coefficients[1]
-  c1 <- lm_high_q$coefficients[2]
-  demand <- c0 + c1*p
-  return(demand)
-}
-high_cs <- integrate(high_demand, lower = 3, upper = high_upper)
-
-total_cs <- low_cs$value + high_cs$value
-```
-
-```{r}
 # Quantity at price of $3
 q_bar <- aggregate_demand(3)
-# 576875.2
 
 slope = 3/q_bar
 
-# supply (quantity-based)
+# supply (quantity-based) 1.
 predict_supply <- function(q){
     predicted_supply <- slope*q
   return(predicted_supply)
 }
-
-supply_q <- seq(from = 1, to = 700017, by = 36843)
-supply <- predict_supply(supply_q)
 ```
 
 ```{r}
-# Producer surplus
+# Welfare calculations
+# Calculate red triangle 2.
+low_upper <- lm_low_q$coefficients[1]
+low_cs <- integrate(low_demand, lower = 3, upper = low_upper)
+welfare_l <- low_cs$value
 
-# Calculate orange triangle
+# Calculate blue triangle 2.
+high_upper <- lm_high_q$coefficients[1]
+high_cs <- integrate(high_demand, lower = 3, upper = high_upper)
+welfare_h <- high_cs$value
+
+# Total welfare
+total_cs <- welfare_l + welfare_h
+```
+
+```{r}
+# Producer welfare
+# Calculate orange triangle 1.
 supply_upper <- q_bar
 total_ps <- integrate(predict_supply, lower = 0, upper = q_bar)
 
-# Environmental cost
+# Environmental cost 1.
 cost_env <- 1.5*q_bar
 ```
 
 ```{r}
+# Visualization set up
+quantity_h = seq(from = 1, to = 600001, by = 31579)
+graph_h <- predict_demand(quantity_h, lm_high_q)
+
+quantity_l = seq(from = 1, to = 600001, by = 31579)
+graph_l <- predict_demand(quantity_l, lm_low_q)
+
+agg_price <- seq(from = 1+(10.8/19), to = 11.8, by = 10.8/19)
+agg_demand <- aggregate_demand(agg_price)
+
+supply_q <- seq(from = 1, to = 700017, by = 36843)
+supply <- predict_supply(supply_q)
+
+# Dataframe set up
 predict_df <- data.frame(gas_data$price_dollars, gas_data$q_high_gallons, gas_data$q_low_gallons, quantity_h, graph_h, quantity_l, graph_l, agg_demand, supply, supply_q, agg_price) %>% 
   mutate(low_q = gas_data.q_low_gallons,
          high_q = gas_data.q_high_gallons,
          price_q = gas_data.price_dollars)
 
+# Plot
 ggplot(data = predict_df, aes(x = quantity_h, y = graph_h))+
   geom_line(aes(x = graph_l, y = quantity_l), color = "red") +
   geom_line(aes(x = graph_h, y = quantity_h), color = "blue") +
@@ -174,11 +175,27 @@ ggplot(data = predict_df, aes(x = quantity_h, y = graph_h))+
 ---- Question 3 ----
 
 ```{r}
-q_new <- aggregate_demand(4)
+q_new <- aggregate_demand(4) # a.
+p_new <- 4 # b.
 
+# Welfare of high income
+high_upper <- lm_high_q$coefficients[1]
+high_cs_new <- integrate(high_demand, lower = p_new, upper = high_upper)
+welfare_h_new <- high_cs_new$value # c.
+
+# Welfare of low income
+low_upper <- lm_low_q$coefficients[1]
+low_cs_new <- integrate(low_demand, lower = p_new, upper = low_upper)
+welfare_l_new <- low_cs_new$value # d.
+
+# Welfare of gas producers
+
+
+# Set up for graph
 supply_q_new <- seq(from = 1, to = 800014, by = 42106)
 supply_new <- predict_supply(supply_q_new)
 
+# Visualization
 ggplot(data = predict_df, aes(x = quantity_h, y = graph_h))+
   geom_line(aes(x = graph_l, y = quantity_l), color = "red") +
   geom_line(aes(x = graph_h, y = quantity_h), color = "blue") +
@@ -195,18 +212,3 @@ ggplot(data = predict_df, aes(x = quantity_h, y = graph_h))+
   coord_flip()
 
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
