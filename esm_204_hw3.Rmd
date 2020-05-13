@@ -9,7 +9,6 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # Setup
-
 ```{r}
 library(tidyverse)
 library(tidyr)
@@ -24,7 +23,6 @@ gas_data <- read_csv("gas_data.csv") %>%
 ```
 
 # Exploration
-
 ```{r}
 plot_low <- ggplot(data = gas_data, aes(x = price_dollars, y = q_low_gallons)) +
   geom_point()+
@@ -40,7 +38,6 @@ grid.arrange(plot_low, plot_high, ncol = 2, top = "Demand for High and Low Consu
 ```
 
 # Questions 1 & 2
-
 ```{r}
 # Regression models for high and low income consumers (demand curves)
 
@@ -101,12 +98,20 @@ aggregate_demand <- function(p){
 q_bar <- aggregate_demand(3)
 
 slope = 3/q_bar
+slope_inv = q_bar/3
 
 # supply (quantity-based) 1.
 predict_supply <- function(q){
     predicted_supply <- slope*q
   return(predicted_supply)
 }
+
+# supply (price-based) 5.
+predict_supply_p <- function(p){
+    predicted_supply <- slope_inv*p
+  return(predicted_supply)
+}
+
 ```
 
 ```{r}
@@ -173,7 +178,6 @@ ggplot(data = predict_df, aes(x = quantity_h, y = graph_h))+
 ```
 
 # Question 3
-
 ```{r}
 q_new <- aggregate_demand(4) # a.
 p_new <- 4 # b.
@@ -190,7 +194,7 @@ welfare_l_new <- low_cs_new$value # d.
 
 # Welfare of gas producers
 ps_new <- integrate(predict_supply, lower = 0, upper = q_new)
-welfare_p_new <- ps_new$value # e.
+welfare_p_new <- 3 * q_new - ps_new$value # e.
 
 # Local environmental damage
 cost_env_new_l <- 1.5*q_new # f.
@@ -233,20 +237,25 @@ prop_low <- q_low/q_bar
 prop_high <- q_high/q_bar
 
 # Tax of $1
-welfare_l_new2 <- welfare_l_new + prop_low*tax_rev - cost_env_new_l
-welfare_h_new2 <- welfare_h_new + prop_high*tax_rev
+welfare_l_new2 <- welfare_l_new + prop_low*tax_rev - cost_env_new_l # b.
+welfare_h_new2 <- welfare_h_new + prop_high*tax_rev # a.
+# Producer welfare unchanged from Q 3
 
-# set up for $5
+# Set up for $5
 p_new2 <- 8
 q_new2 <- aggregate_demand(p_new2)
 
-# Welfare of high income
+# Welfare of high income a.
 high_cs_new2 <- integrate(high_demand, lower = p_new2, upper = high_upper)
 welfare_h_new2 <- high_cs_new2$value
 
-# Welfare of low income
+# Welfare of low income b.
 low_cs_new2 <- integrate(low_demand, lower = p_new2, upper = low_upper)
 welfare_l_new2 <- low_cs_new2$value
+
+# Welfare of producers c.
+ps_new2 <- integrate(predict_supply, lower = 0, upper = q_new2)
+welfare_p_new2 <- 3 * q_new2 - ps_new2$value
 
 # New tax revnue
 tax_rev_new2 <- 5*q_new2
@@ -257,5 +266,60 @@ cost_env_new2 <- 1.5*q_new2
 # Tax of $5
 welfare_l_new2_5 <- welfare_l_new2 + prop_low*tax_rev_new2 - cost_env_new2
 welfare_h_new2_5 <- welfare_h_new2 + prop_high*tax_rev_new2
+```
+
+
+# Question 5
+```{r}
+# New demand function
+# demand halved (either-based) 
+predict_demand_half <- function(n, model){
+  b0 <- model$coefficients[1]
+  b1 <- model$coefficients[2]
+  predicted_demand <- 0.5*b0 + b1*n
+  return(predicted_demand)
+}
+
+aggregate_demand_half <- function(p){
+  c0 <- lm_low_p$coefficients[1]
+  c1 <- lm_low_p$coefficients[2]
+  d0 <- lm_high_p$coefficients[1]
+  d1 <- lm_high_p$coefficients[2]
+  aggregated_demand <- 0.5*(c0+d0) + (c1+d1)*p
+  return(aggregated_demand)
+}
+
+solution <- uniroot(function(x) aggregate_demand_half(x) - predict_supply_p(x), c(0.01, 10))
+
+# check
+# aggregate_demand_half(solution$root)
+# predict_supply_p(solution$root)
+
+
+# High consumers a.
+q_high_half <- predict_demand_half(solution$root, lm_high_p)
+
+# Low consumers b.
+q_low_half <- predict_demand_half(solution$root, lm_low_p)
+
+# Gas Price c.
+p_half <- solution$root
+
+# Local environmental damage
+cost_env_l_half <- 1.5 * (q_high_half + q_low_half)
+
+# Global environmental damage
+cost_env_g_half <- 0.5 * (q_high_half + q_low_half)
+```
+
+
+# Question 6
+```{r}
+# What tax will half q_bar?
+aggregate_demand(9.18731)
+
+q_bar_half <- q_low_half + q_high_half
+
+tax <- 9.187 - 3
 ```
 
