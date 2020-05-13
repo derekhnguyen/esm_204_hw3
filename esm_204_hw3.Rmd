@@ -90,6 +90,7 @@ aggregate_demand <- function(p){
   c1 <- lm_low_p$coefficients[2]
   d0 <- lm_high_p$coefficients[1]
   d1 <- lm_high_p$coefficients[2]
+  # aggregated_demand <- ((p-c0)/c1) + ((p-d0)/d1)
   aggregated_demand <- c0+d0 + (c1+d1)*p
   return(aggregated_demand)
 }
@@ -179,8 +180,15 @@ ggplot(data = predict_df, aes(x = quantity_h, y = graph_h))+
 
 # Question 3
 ```{r}
-q_new <- aggregate_demand(4) # a.
-p_new <- 4 # b.
+predict_supply_tax <- function(p){
+    predicted_supply <- slope_inv*(p - 1)
+  return(predicted_supply)
+}
+price_new <- uniroot(function(x) aggregate_demand(x) - predict_supply_tax(x), c(0.01, 10)) 
+
+p_new <- price_new$root # b.
+
+q_new <- aggregate_demand(p_new) # a.
 
 # Welfare of high income
 high_upper <- lm_high_q$coefficients[1]
@@ -193,8 +201,8 @@ low_cs_new <- integrate(low_demand, lower = p_new, upper = low_upper)
 welfare_l_new <- low_cs_new$value # d.
 
 # Welfare of gas producers
-ps_new <- integrate(predict_supply, lower = 0, upper = q_new)
-welfare_p_new <- 3 * q_new - ps_new$value # e.
+ps_new <- integrate(predict_supply_tax, lower = 0, upper = p_new)
+welfare_p_new <- (p_new-1) * q_new - ps_new$value # e.
 
 # Local environmental damage
 cost_env_new_l <- 1.5*q_new # f.
@@ -234,34 +242,44 @@ ggplot(data = predict_df, aes(x = quantity_h, y = graph_h))+
 q_low <- low_demand(3)
 q_high <- high_demand(3)
 prop_low <- q_low/q_bar
-prop_high <- q_high/q_bar
+prop_high <- q_high/q_bar 
+
+# No Tax
+welfare_h_new3 <- welfare_h
+welfare_l_new3 <- welfare_l - cost_env_new_l
 
 # Tax of $1
 welfare_l_new2 <- welfare_l_new + prop_low*tax_rev - cost_env_new_l # b.
 welfare_h_new2 <- welfare_h_new + prop_high*tax_rev # a.
-# Producer welfare unchanged from Q 3
+welfare_p_new2 <- (p_new-1) * q_new - ps_new$value
 
 # Set up for $5
-p_new2 <- 8
-q_new2 <- aggregate_demand(p_new2)
+predict_supply_tax_5 <- function(p){
+    predicted_supply <- slope_inv*(p - 5)
+  return(predicted_supply)
+}
+price_new2 <- uniroot(function(x) aggregate_demand(x) - predict_supply_tax_5(x), c(0.01, 10)) 
+p_new2 <- price_new2$root # b.
+
+q_new2 <- aggregate_demand(p_new2) # a.
 
 # Welfare of high income a.
 high_cs_new2 <- integrate(high_demand, lower = p_new2, upper = high_upper)
-welfare_h_new2 <- high_cs_new2$value
+welfare_h_new2_5 <- high_cs_new2$value + prop_high*p_new2*q_new2
 
 # Welfare of low income b.
 low_cs_new2 <- integrate(low_demand, lower = p_new2, upper = low_upper)
-welfare_l_new2 <- low_cs_new2$value
+welfare_l_new2_5 <- low_cs_new2$value + prop_low*p_new2*q_new2 - cost_env_new_l
 
 # Welfare of producers c.
 ps_new2 <- integrate(predict_supply, lower = 0, upper = q_new2)
-welfare_p_new2 <- 3 * q_new2 - ps_new2$value
+welfare_p_new2_5 <- (p_new2-5) * q_new2 - ps_new2$value
 
 # New tax revnue
-tax_rev_new2 <- 5*q_new2
+tax_rev_new2_5 <- 5*q_new2
 
 # New environmental cost
-cost_env_new2 <- 1.5*q_new2
+cost_env_new2_5 <- 1.5*q_new2
 
 # Tax of $5
 welfare_l_new2_5 <- welfare_l_new2 + prop_low*tax_rev_new2 - cost_env_new2
@@ -318,10 +336,13 @@ cost_env_g_half <- 0.5 * (q_high_half + q_low_half)
 
 q_bar_half <- q_low_half + q_high_half
 
-solution_2 <- uniroot(function(x) aggregate_demand(x) - q_bar_half, c(0.01, 10))
+predict_supply_tax_n <- function(t){
+    predicted_supply <- slope*q_bar_half + t
+  return(predicted_supply)
+}
 
-tax <- solution_2$root - 3
+optimize(predict_supply_tax_n, c(0,10))
 
-aggregate_demand(10.30)
+aggregate_demand(10.0)
 ```
 
